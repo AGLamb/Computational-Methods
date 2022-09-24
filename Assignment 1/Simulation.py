@@ -12,13 +12,15 @@ def main():
     df_X, df_Y, df_True, df_False = Process_data()
 
     """Estimating a simple regression"""
-    # Model, y_res = Regress_OLS(df_Y, df_X)
+    Model, y_res = Regress_OLS(df_Y, df_X)
+    AR_error = Regress_AR(y_res, 1)
+    t = AR_error.params[1]
 
-    """Testing if the mean of the variables is equal to 0"""
-    # t = ttest_1samp(df_X, popmean=0)
+    t_star = Monte_Carlo(df_X, 99999)
 
-    t_star = Monte_Carlo(df_X, 100)
-    print(t_star.mean())
+    p_value = min(np.where(t < t_star, True, False).mean(), np.where(t_star <= t, True, False).mean())
+    print(p_value)
+
     return
 
 
