@@ -1,4 +1,5 @@
 from statsmodels.tsa.ar_model import AutoReg, ar_select_order
+from statsmodels.stats.stattools import durbin_watson
 from statsmodels.tsa.api import acf, graphics, pacf
 from scipy.stats import ttest_1samp
 import statsmodels.api as sm
@@ -13,22 +14,37 @@ def main():
 
     """Estimating a simple regression"""
     Model, y_res = Regress_OLS(df_Y, df_X)
-    AR_error = Regress_AR(y_res, 1)
-    t = AR_error.params[1]
+    db_test = durbin_watson(y_res)
 
-    t_star = Monte_Carlo(df_X, 99999)
+    """Estimating the AR(1) Model with the errors of the given matrix"""
+    AR_errors = Regress_AR(y_res, 1)
+    t = AR_errors.params[1]
 
-    p_value = min(np.where(t < t_star, True, False).mean(), np.where(t_star <= t, True, False).mean())
-    print(p_value)
+    """Running the Monte Carlo Simulation to get t* and DB* statistics """
+    t_star, db_star = Monte_Carlo(df_X, 999)
 
+    """Calculating the Monte Carlo p-values"""
+    p_value_t = min(np.where(t < t_star, True, False).mean(), np.where(t_star <= t, True, False).mean())
+    p_value_db = min(np.where(db_test < db_star, True, False).mean(), np.where(db_star <= db_test, True, False).mean())
+    print(p_value_t, p_value_db)
+
+    # plotter()
+
+    return
+
+
+"""Pending the creation of a function to plot the results from above"""
+
+
+def plotter():
     return
 
 
 def Monte_Carlo(df, B):
     N = df.shape[0]
     t_star = list()
+    db_star = list()
     for i in range(B):
-
         """Simulating N samples, choosing N as the X matrix dimension"""
         y_star = Simulate(N)
 
@@ -37,8 +53,12 @@ def Monte_Carlo(df, B):
 
         """Estimating an AR(1) model with the residuals"""
         AR_star_Model = Regress_AR(y_star_res, 1)
+
+        """Calculating the t- and DB- statistics"""
         t_star.append(AR_star_Model.params[1])
-    return np.array(t_star)
+        db_star.append(durbin_watson(y_star_res))
+
+    return np.array(t_star), np.array(db_star)
 
 
 def Regress_OLS(Dependent, Independent):
@@ -63,7 +83,7 @@ def Simulate(number):
 
 
 def Process_data():
-    return pd.read_csv('Regressors.txt', header=None), pd.read_csv('Observables.txt', header=None),\
+    return pd.read_csv('Regressors.txt', header=None), pd.read_csv('Observables.txt', header=None), \
            pd.read_csv('True_null.txt', header=None), pd.read_csv('False_null.txt', header=None)
 
 
