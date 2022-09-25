@@ -8,6 +8,10 @@ import numpy as np
 import random
 
 
+B_iterations = 9999
+Alpha = 0.1
+
+
 def main():
     """Loading the data"""
     df_X, df_Y, df_True, df_False = Process_data()
@@ -21,7 +25,10 @@ def main():
     t = AR_errors.params[1]
 
     """Running the Monte Carlo Simulation to get t* and DB* statistics """
-    t_star, db_star = Monte_Carlo(df_X, 999)
+    # Low_limit_statistic, High_limit_statistic = Alpha * (B_iterations + 1), (1 - Alpha) * (B_iterations + 1)
+    t_star, db_star = Monte_Carlo(df_X, B_iterations)
+    # db_star.sort()
+    # print(db_star[int(Low_limit_statistic)], db_star[int(High_limit_statistic)])
 
     """Calculating the Monte Carlo p-values"""
     p_value_t = min(np.where(t < t_star, True, False).mean(), np.where(t_star <= t, True, False).mean())
@@ -29,7 +36,8 @@ def main():
     print(p_value_t, p_value_db)
     
     """Calculating the Critical values c1 and c2 for db"""
-    c1, c2 = critical_values(db_star, 0.1)
+    c1, c2 = critical_values(db_star, Alpha)
+    print(c1, c2)
     # plotter()
 
     return
@@ -96,6 +104,5 @@ def critical_values(db_star, alpha):
     c1_th_percentile = 100 * (alpha) 
     c1 = np.percentile(db_star, int(c1_th_percentile))
     return c1, c2
-critical_values(db_star, 0.1)
 
 main()
