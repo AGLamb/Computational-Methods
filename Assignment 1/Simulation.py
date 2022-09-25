@@ -27,7 +27,9 @@ def main():
     p_value_t = min(np.where(t < t_star, True, False).mean(), np.where(t_star <= t, True, False).mean())
     p_value_db = min(np.where(db_test < db_star, True, False).mean(), np.where(db_star <= db_test, True, False).mean())
     print(p_value_t, p_value_db)
-
+    
+    """Calculating the Critical values c1 and c2 for db"""
+    c1, c2 = critical_values(db_star, 0.1)
     # plotter()
 
     return
@@ -86,5 +88,14 @@ def Process_data():
     return pd.read_csv('Regressors.txt', header=None), pd.read_csv('Observables.txt', header=None), \
            pd.read_csv('True_null.txt', header=None), pd.read_csv('False_null.txt', header=None)
 
+
+def critical_values(db_star, alpha):
+    c2_th_percentile = 100 * (1 - alpha) 
+    c2 = np.percentile(db_star, int(c2_th_percentile))
+
+    c1_th_percentile = 100 * (alpha) 
+    c1 = np.percentile(db_star, int(c1_th_percentile))
+    return c1, c2
+critical_values(db_star, 0.1)
 
 main()
