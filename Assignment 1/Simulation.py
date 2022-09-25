@@ -38,6 +38,9 @@ def main():
     """Calculating the Critical values c1 and c2 for db"""
     c1, c2 = critical_values(db_star, Alpha)
     print(c1, c2)
+    
+    """Calculating the rejection rate of the True null on the Null"""
+    rejection_rate = rejection_rate_db_test(df_True, c1, c2)
     # plotter()
 
     return
@@ -104,5 +107,22 @@ def critical_values(db_star, alpha):
     c1_th_percentile = 100 * (alpha) 
     c1 = np.percentile(db_star, int(c1_th_percentile))
     return c1, c2
+
+    
+    def rejection_rate_db_test(df_True, c1, c2):            
+    rejected = 0; accepted = 0
+    for column in df_True.columns:
+        
+        Model, y_res = Regress_OLS(df_Y, df_True[column])
+        db_test = durbin_watson(y_res)
+
+        if db_test < c1 or db_test > c2:
+            print(db_test)
+            rejected += 1
+        else:
+            accepted += 1
+
+    return 100 * (rejected / (rejected + accepted))
+
 
 main()
