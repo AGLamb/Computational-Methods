@@ -7,7 +7,8 @@ import pandas as pd
 import numpy as np
 import random
 
-B_iterations = 999
+
+B_iterations = 99
 Alpha = 0.1
 
 
@@ -20,7 +21,6 @@ def main():
     db_test = durbin_watson(y_res)
 
     """Running the Monte Carlo Simulation to get t* and DB* statistics """
-    """rho_star,"""
     db_star = Monte_Carlo(df_X, B_iterations)
 
     """Calculating the critical values and the MC p-value"""
@@ -33,12 +33,13 @@ def main():
 
     """Calculating the rejection rate of the True null on the Null"""
     rejection_rate_true = rejection_rate_db_test(df_True, df_X, c1, c2)
-    print(f'Question 3 \nThe rejection rate is: {rejection_rate_true:.2f}')
+    print(f'Question 3 \nThe rejection rate is: {rejection_rate_true:.2f}%')
 
     """Question 5"""
+    coverage = coverage_prob(df_False, df_X, c1, c2)
     rejection_rate_false = rejection_rate_db_test(df_False, df_X, c1, c2)
-    print(f'Question 5 \nThe rejection rate is: {rejection_rate_false:.2f}')
-
+    print(f'Question 5 \nThe rejection rate is: {rejection_rate_false:.2f}%')
+    print(f'Probability Coverage = {coverage:.2f}%')
     # plotter()
     return
 
@@ -46,8 +47,32 @@ def main():
 """Pending the creation of a function to plot the results from above"""
 
 
+def coverage_prob(df_Y, df_X, c1, c2):
+    rejected = 0
+    accepted = 0
+
+    for column in df_Y.columns:
+        Model, y_res = Regress_OLS(df_Y[column], df_X)
+        db_test = durbin_watson(y_res)
+
+        Model_AR = Regress_AR(y_res, 1)
+        rho = Model_AR.params[1]
+        T = 2 * (1 - rho)
+
+        Low = db_test + 2 - c2
+        High = db_test + 2 - c1
+
+        if Low <= T <= High:
+            accepted += 1
+        else:
+            rejected += 1
+
+    return 100 * (accepted / (rejected + accepted))
+
+
 def MC_Pvalue(db_star, db_test, c1, c2):
     rejected = 0
+
     for i in range(len(db_star)):
         if db_star[i] > c2 or db_star[i] < c1:
             rejected += 1
@@ -64,29 +89,30 @@ def plotter():
 
 def Monte_Carlo(df, B):
     N = df.shape[0]
-    # rho_star = list()
     db_star = list()
     for i in range(B):
         """Simulating N samples, choosing N as the X matrix dimension"""
         y_star = Simulate(N)
 
         """Regressing the simulated sample on the original independent variables"""
-        # Model_star, y_star_res = Regress_OLS(y_star, df)
-
-        """Estimating an AR(1) model with the residuals"""
-        # AR_star_Model = Regress_AR(y_star_res, 1)
+        Model_star, y_star_res = Regress_OLS(y_star, df)
 
         """Calculating the t- and DB- statistics"""
-        # rho_star.append(AR_star_Model.params[1])
-        db_star.append(durbin_watson(y_star))
+        db_star.append(durbin_watson(y_star_res))
 
-    return np.array(db_star)  # , np.array(rho_star)
+    return np.array(db_star)
 
 
 def Regress_OLS(Dependent, Independent):
     Model = sm.OLS(Dependent, Independent)
     Results = Model.fit()
     return Results, Results.resid
+
+
+def Regress_AR(Variable, Lags):
+    Model = AutoReg(Variable, Lags)
+    Results = Model.fit()
+    return Results
 
 
 def Simulate(number):
