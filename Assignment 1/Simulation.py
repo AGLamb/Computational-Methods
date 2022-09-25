@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 import random
 
-B_iterations = 99999
+B_iterations = 999
 Alpha = 0.1
 
 
@@ -19,35 +19,43 @@ def main():
     Model, y_res = Regress_OLS(df_Y, df_X)
     db_test = durbin_watson(y_res)
 
-    """Estimating the AR(1) Model with the errors of the given matrix"""
-    AR_errors = Regress_AR(y_res, 1)
-    rho = AR_errors.params[1]
-
     """Running the Monte Carlo Simulation to get t* and DB* statistics """
-    rho_star, db_star = Monte_Carlo(df_X, B_iterations)
+    """rho_star,"""
+    db_star = Monte_Carlo(df_X, B_iterations)
 
-    """Calculating the Monte Carlo p-values"""
-    p_value_db = min(np.where(db_test < db_star, True, False).mean(), np.where(db_star <= db_test, True, False).mean())
-
-    """Calculating the Critical values c1 and c2 for db"""
+    """Calculating the critical values and the MC p-value"""
     c1, c2 = critical_values(db_star, Alpha)
+    p_value_db = MC_Pvalue(db_star, db_test, c1, c2)
 
     """Printing and plotting the results"""
-    print(f'The Rejection Region is: (0, {c1:.2f}) U ({c2:.2f}, 4)')
+    print(f'Question 2 \nThe Rejection Region is: (0, {c1:.2f}) U ({c2:.2f}, 4)')
     print(f'Monte Carlo p-value = {p_value_db:.2f}')
-    # plotter()
-    
+
     """Calculating the rejection rate of the True null on the Null"""
     rejection_rate_true = rejection_rate_db_test(df_True, df_X, c1, c2)
-    print(f'The rejection rate is: {rejection_rate_true:.2f}')
+    print(f'Question 3 \nThe rejection rate is: {rejection_rate_true:.2f}')
 
     """Question 5"""
     rejection_rate_false = rejection_rate_db_test(df_False, df_X, c1, c2)
-    print(f'The rejection rate is: {rejection_rate_false:.2f}')
+    print(f'Question 5 \nThe rejection rate is: {rejection_rate_false:.2f}')
+
+    # plotter()
     return
 
 
 """Pending the creation of a function to plot the results from above"""
+
+
+def MC_Pvalue(db_star, db_test, c1, c2):
+    rejected = 0
+    for i in range(len(db_star)):
+        if db_star[i] > c2 or db_star[i] < c1:
+            rejected += 1
+
+    if db_test > c2 or db_test < c1:
+        rejected += 1
+
+    return rejected / (len(db_star) + 1)
 
 
 def plotter():
@@ -56,35 +64,29 @@ def plotter():
 
 def Monte_Carlo(df, B):
     N = df.shape[0]
-    rho_star = list()
+    # rho_star = list()
     db_star = list()
     for i in range(B):
         """Simulating N samples, choosing N as the X matrix dimension"""
         y_star = Simulate(N)
 
         """Regressing the simulated sample on the original independent variables"""
-        Model_star, y_star_res = Regress_OLS(y_star, df)
+        # Model_star, y_star_res = Regress_OLS(y_star, df)
 
         """Estimating an AR(1) model with the residuals"""
-        AR_star_Model = Regress_AR(y_star_res, 1)
+        # AR_star_Model = Regress_AR(y_star_res, 1)
 
         """Calculating the t- and DB- statistics"""
-        rho_star.append(AR_star_Model.params[1])
-        db_star.append(durbin_watson(y_star_res))
+        # rho_star.append(AR_star_Model.params[1])
+        db_star.append(durbin_watson(y_star))
 
-    return np.array(rho_star), np.array(db_star)
+    return np.array(db_star)  # , np.array(rho_star)
 
 
 def Regress_OLS(Dependent, Independent):
     Model = sm.OLS(Dependent, Independent)
     Results = Model.fit()
     return Results, Results.resid
-
-
-def Regress_AR(Variable, Lags):
-    Model = AutoReg(Variable, Lags)
-    Results = Model.fit()
-    return Results
 
 
 def Simulate(number):
@@ -102,19 +104,19 @@ def Process_data():
 
 
 def critical_values(db_star, alpha):
-    c2_th_percentile = 100 * (1 - alpha)
-    c2 = np.percentile(db_star, int(c2_th_percentile))
+    c2_th_statistic = 100 * (1 - (alpha / 2))
+    c2 = np.percentile(db_star, int(c2_th_statistic))
 
-    c1_th_percentile = 100 * alpha
-    c1 = np.percentile(db_star, int(c1_th_percentile))
+    c1_th_statistic = 100 * (alpha / 2)
+    c1 = np.percentile(db_star, int(c1_th_statistic))
     return c1, c2
 
-    
+
 def rejection_rate_db_test(df_Y, df_X, c1, c2):
     rejected = 0
     accepted = 0
-    for column in df_Y.columns:
 
+    for column in df_Y.columns:
         Model, y_res = Regress_OLS(df_Y[column], df_X)
         db_test = durbin_watson(y_res)
 
@@ -122,6 +124,7 @@ def rejection_rate_db_test(df_Y, df_X, c1, c2):
             rejected += 1
         else:
             accepted += 1
+
     return 100 * (rejected / (rejected + accepted))
 
 
