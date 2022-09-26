@@ -36,7 +36,7 @@ def main():
     print(f'Question 3 \nThe rejection rate is: {rejection_rate_true:.2f}%')
 
     """Question 5"""
-    coverage = coverage_prob(df_False, df_X, c1, c2)
+    coverage = coverage_prob(df_False, df_X, c1, c2, db_test)
     rejection_rate_false = rejection_rate_db_test(df_False, df_X, c1, c2)
     print(f'Question 5 \nThe rejection rate is: {rejection_rate_false:.2f}%')
     print(f'Probability Coverage = {coverage:.2f}%')
@@ -47,13 +47,13 @@ def main():
 """Pending the creation of a function to plot the results from above"""
 
 
-def coverage_prob(df_Y, df_X, c1, c2):
+def coverage_prob(df_Y, df_X, c1, c2, db_test):
     rejected = 0
     accepted = 0
 
     for column in df_Y.columns:
         Model, y_res = Regress_OLS(df_Y[column], df_X)
-        db_test = durbin_watson(y_res)
+        # db_test = durbin_watson(y_res)
 
         Model_AR = Regress_AR(y_res, 1)
         rho = Model_AR.params[1]
@@ -156,4 +156,6 @@ def rejection_rate_db_test(df_Y, df_X, c1, c2):
 
 main()
 
+
+# Hello world
 # Isa Is sexy
