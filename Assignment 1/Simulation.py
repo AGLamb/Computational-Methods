@@ -8,11 +8,11 @@ import numpy as np
 import random
 
 
-B_iterations = 99
+B_iterations = [99, 999, 9999]
 Alpha = 0.1
 
 
-def main():
+def main(alpha, beta):
     """Loading the data"""
     df_X, df_Y, df_True, df_False = Process_data()
 
@@ -21,10 +21,10 @@ def main():
     db_test = durbin_watson(y_res)
 
     """Running the Monte Carlo Simulation to get t* and DB* statistics """
-    db_star = Monte_Carlo(df_X, B_iterations)
+    db_star = Monte_Carlo(df_X, beta)
 
     """Calculating the critical values and the MC p-value"""
-    c1, c2 = critical_values(db_star, Alpha)
+    c1, c2 = critical_values(db_star, alpha)
     p_value_db = MC_Pvalue(db_star, db_test, c1, c2)
 
     """Printing and plotting the results"""
@@ -44,16 +44,12 @@ def main():
     return
 
 
-"""Pending the creation of a function to plot the results from above"""
-
-
 def coverage_prob(df_Y, df_X, c1, c2, db_test):
     rejected = 0
     accepted = 0
 
     for column in df_Y.columns:
         Model, y_res = Regress_OLS(df_Y[column], df_X)
-        # db_test = durbin_watson(y_res)
 
         Model_AR = Regress_AR(y_res, 1)
         rho = Model_AR.params[1]
@@ -81,10 +77,6 @@ def MC_Pvalue(db_star, db_test, c1, c2):
         rejected += 1
 
     return rejected / (len(db_star) + 1)
-
-
-def plotter():
-    return
 
 
 def Monte_Carlo(df, B):
@@ -154,8 +146,6 @@ def rejection_rate_db_test(df_Y, df_X, c1, c2):
     return 100 * (rejected / (rejected + accepted))
 
 
-main()
-
-
-# Hello world
-# Isa Is sexy
+for i in range(len(B_iterations)):
+    print(f'B = {B_iterations[i]}')
+    main(Alpha, B_iterations[i])
