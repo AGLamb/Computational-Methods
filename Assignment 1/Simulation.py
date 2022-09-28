@@ -8,11 +8,16 @@ import numpy as np
 import random
 
 
-B_iterations = [99, 999, 9999]
-Alpha = 0.1
+def main():
+    B_iterations = [99, 999, 9999]
+    Alpha = 0.1
+    for i in range(len(B_iterations)):
+        print(f'B = {B_iterations[i]}')
+        Run_Assignment(Alpha, B_iterations[i])
+    return
 
 
-def main(alpha, beta):
+def Run_Assignment(alpha, beta):
     """Loading the data"""
     df_X, df_Y, df_True, df_False = Process_data()
 
@@ -40,7 +45,6 @@ def main(alpha, beta):
     rejection_rate_false = rejection_rate_db_test(df_False, df_X, c1, c2)
     print(f'Question 5 \nThe rejection rate is: {rejection_rate_false:.2f}%')
     print(f'Probability Coverage = {coverage:.2f}%')
-    # plotter()
     return
 
 
@@ -146,6 +150,5 @@ def rejection_rate_db_test(df_Y, df_X, c1, c2):
     return 100 * (rejected / (rejected + accepted))
 
 
-for i in range(len(B_iterations)):
-    print(f'B = {B_iterations[i]}')
-    main(Alpha, B_iterations[i])
+if __name__ == "__main__":
+    main()
