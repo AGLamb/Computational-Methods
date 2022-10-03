@@ -123,7 +123,7 @@ def Simulate(number):
 
 def Process_data():
     return pd.read_csv('Regressors.txt', header=None), pd.read_csv('Observables.txt', header=None), \
-           pd.read_csv('True_null.txt', header=None), pd.read_csv('False_null.txt', header=None)z
+           pd.read_csv('True_null.txt', header=None), pd.read_csv('False_null.txt', header=None)
 
 
 def critical_values(db_star, alpha):
