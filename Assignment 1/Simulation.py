@@ -24,6 +24,7 @@ def Run_Assignment(alpha, beta):
     """Estimating a simple regression"""
     Model, y_res = Regress_OLS(df_Y, df_X)
     db_test = durbin_watson(y_res)
+    print(db_test)
 
     """Running the Monte Carlo Simulation to get t* and DB* statistics """
     db_star = Monte_Carlo(df_X, beta)
@@ -122,7 +123,7 @@ def Simulate(number):
 
 def Process_data():
     return pd.read_csv('Regressors.txt', header=None), pd.read_csv('Observables.txt', header=None), \
-           pd.read_csv('True_null.txt', header=None), pd.read_csv('False_null.txt', header=None)
+           pd.read_csv('True_null.txt', header=None), pd.read_csv('False_null.txt', header=None)z
 
 
 def critical_values(db_star, alpha):
