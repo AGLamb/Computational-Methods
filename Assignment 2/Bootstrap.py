@@ -10,8 +10,9 @@ import random as rnd
 def main():
     df_X, df_Y = Process_data()  # get X and Y
     naiveTtest(df_X, df_Y)
-    print(np_res_bootstrap(df_Y, df_X))
-    print(wild_bootstrap(df_Y, df_X))
+
+    bootstrap(df_Y, df_X, "np")
+    bootstrap(df_Y, df_X, "wild")
     return
 
 
@@ -31,7 +32,7 @@ def naiveTtest(df_X, df_Y):  # Ex 2 t-test
         if abs(Tn) >= abs(norm.ppf(alpha / 2)):  # if Tn > inverse normal dist with alpha/2
             rejected += 1
 
-    print(f' Test rejects H0 approximately: {(rejected / n) * 100:.2f}%')
+    print(f' Test rejects H0 is approximately: {(rejected / n) * 100:.2f}%')
 
 
 def Regress_OLS(Dependent, Independent):
@@ -41,56 +42,49 @@ def Regress_OLS(Dependent, Independent):
     return Results, Results.resid
 
 
-def np_res_bootstrap(df_y, df_x, B=99):  # Ex 3b
+def bootstrap(df_y, df_x, bootstrap_type, B=99):  # Ex 3b
     df_Tn = pd.DataFrame()
+    alpha = 0.05
+    rejected = 0
+    n = len(df_y.columns)
 
     for i in range(len(df_y)):
         Model, Residuals = Regress_OLS(df_y[i], df_x)
         y_hat = Model.fittedvalues
         Tn_vector = list()
+        vType = 1
 
         for j in range(B):
             y_star = list()
 
             for k in range(len(y_hat)):
-                y_star_i = y_hat[k] + random.choice(Residuals)
+                if bootstrap_type == "np":
+                    vType = 1
+                elif bootstrap_type == "wild":
+                    vType = random.normalvariate(0, 1)
+                y_star_i = y_hat[k] + random.choice(Residuals) * vType
                 y_star.append(y_star_i)
+
             y_star = pd.DataFrame(y_star)
-            Tn_vector.append(test_stat(y_star, df_x))
+            Tn = test_stat(y_star, df_x)
+
+            if abs(Tn) >= abs(norm.ppf(alpha / 2)):
+                rejected += 1
+
+            Tn_vector.append(Tn)
 
         Tn_vector = pd.DataFrame(Tn_vector)
         df_Tn = pd.concat([df_Tn, Tn_vector], axis=1)
 
-    print(df_Tn)
-    return
-
-
-def wild_bootstrap(df_y, df_x, B=99):
-    df_Tn = pd.DataFrame()
-    for i in range(len(df_y)):
-        Model, Residuals = Regress_OLS(df_y[i], df_x)
-        y_hat = Model.fittedvalues
-        # print(y_hat)
-        Tn_vector = list()
-        for j in range(B):
-            y_star = list()
-
-            for k in range(len(y_hat)):
-                y_star_i = y_hat[k] + random.choice(Residuals) * random.normalvariate(0, 1)
-                y_star.append(y_star_i)
-            y_star = pd.DataFrame(y_star)
-            Tn_vector.append(test_stat(y_star, df_x))
-        Tn_vector = pd.DataFrame(Tn_vector)
-        # print(Tn_vector)
-        df_Tn = pd.concat([df_Tn, Tn_vector], axis=1)
-    print(df_Tn)
+    Rej_Rate = (rejected / n) * 100
+    print(f' Test rejects H0 is approximately: {Rej_Rate:.2f}%')
+    # print(df_Tn)
     return
 
 
 def test_stat(y_vector, x_vector):
     Model, y_res = Regress_OLS(y_vector, x_vector)  # OLS on a column vector of y (25,1) and all of X (25,3)
     Tn = Model.params[2] / np.sqrt(Model.cov_HC0[2][2])  # t-stat w/ b_OLS,2 and s_2^2
-
     return Tn
 
 
