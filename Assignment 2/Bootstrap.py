@@ -47,7 +47,7 @@ def bootstrap(df_y, df_x, bootstrap_type, B=99):
     rejected = 0
     n = len(df_y.columns)
 
-    for i in range(len(df_y)):
+    for i in range(n):
         Model, Residuals = Regress_OLS(df_y[i], df_x)
         y_hat = Model.fittedvalues
         Tn_vector = list()
