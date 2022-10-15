@@ -7,16 +7,17 @@ import random
 
 
 B = 99
+alpha = 0.05
 
 
 def main():
     df_X, df_Y = Process_data()
 
-    # naive_rate = naiveTtest(df_X, df_Y)
-    # naive_pvalue = 1 - naive_rate
-    # print(f' Test rejects H0 is approximately: {naive_rate * 100:.2f}%')
-    # print(f' The p-value is approximately: {naive_pvalue:.2f}')
-    #
+    naive_rate = naiveTtest(df_X, df_Y)
+    naive_pvalue = 1 - naive_rate
+    print(f' Test rejects H0 is approximately: {naive_rate * 100:.2f}%')
+    print(f' The p-value is approximately: {naive_pvalue:.2f}')
+
     # NP_rate = type_bootstrap(df_Y, df_X, "np")
     # NP_pvalue = 1 - NP_rate
     # print(f' Test rejects H0 is approximately: {NP_rate:.2f}%')
@@ -39,7 +40,6 @@ def Process_data():
 
 
 def naiveTtest(df_X, df_Y):
-    alpha = 0.05
     rejected = 0
     n = len(df_Y.columns)
 
@@ -62,9 +62,8 @@ def Regress_OLS(Dependent, Independent):
 
 def pair_bootstrap(df_y, df_x):
     df_Tn = pd.DataFrame()
-    alpha = 0.05
     rejected = 0
-    n = 100  # len(df_y.columns)
+    n = len(df_y.columns)
 
     for i in range(n):
         Model, Residuals = Regress_OLS(df_y[i], df_x)
@@ -107,7 +106,6 @@ def pair_bootstrap(df_y, df_x):
 
 def type_bootstrap(df_y, df_x, bootstrap_type):
     df_Tn = pd.DataFrame()
-    alpha = 0.05
     rejected = 0
     n = len(df_y.columns)
 
