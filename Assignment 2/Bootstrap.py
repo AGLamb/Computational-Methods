@@ -15,25 +15,25 @@ def main():
     df_X, df_Y = Process_data()
     df_X, df_Y = df_X.to_numpy(), df_Y.to_numpy()
 
-    # naive_rate = naiveTtest(df_X, df_Y)
-    # naive_pvalue = 1 - naive_rate
-    # print(f' Test rejects H0 is approximately: {naive_rate * 100:.2f}%')
-    # print(f' The p-value is approximately: {naive_pvalue:.2f}')
+    naive_rate = naiveTtest(df_X, df_Y)
+    naive_pvalue = 1 - naive_rate
+    print(f' Test rejects H0 is approximately: {naive_rate * 100:.2f}%')
+    print(f' The p-value is approximately: {naive_pvalue:.2f}')
 
     NP_rate = type_bootstrap(df_Y, df_X, "np", test_stat)
     NP_pvalue = 1 - NP_rate
     print(f' Test rejects H0 is approximately: {NP_rate:.2f}%')
     print(f' The p-value is approximately: {NP_pvalue:.2f}')
-    #
-    # Wild_rate = type_bootstrap(df_Y, df_X, "wild", test_stat)
-    # Wild_pvalue = 1 - Wild_rate
-    # print(f' Test rejects H0 is approximately: {Wild_rate * 100:.2f}%')
-    # print(f' The p-value is approximately: {Wild_pvalue:.2f}')
-    #
-    # Pair_rate = pair_bootstrap(df_Y, df_X)
-    # Pair_pvalue = 1 - Pair_rate
-    # print(f' Test rejects H0 is approximately: {Pair_rate * 100:.2f}%')
-    # print(f' The p-value is approximately: {Pair_pvalue:.2f}')
+
+    Wild_rate = type_bootstrap(df_Y, df_X, "wild", test_stat)
+    Wild_pvalue = 1 - Wild_rate
+    print(f' Test rejects H0 is approximately: {Wild_rate * 100:.2f}%')
+    print(f' The p-value is approximately: {Wild_pvalue:.2f}')
+
+    Pair_rate = pair_bootstrap(df_Y, df_X)
+    Pair_pvalue = 1 - Pair_rate
+    print(f' Test rejects H0 is approximately: {Pair_rate * 100:.2f}%')
+    print(f' The p-value is approximately: {Pair_pvalue:.2f}')
     return
 
 
@@ -48,7 +48,7 @@ def naiveTtest(df_X, df_Y):
     for i in range(n):
         Tn = test_stat(df_Y[:, i], df_X)
 
-        if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_Y) - 1)):
+        if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_Y) - 2)):
             rejected += 1
 
     result = (rejected / n)
@@ -67,10 +67,9 @@ def pair_bootstrap(df_y, df_x):
     n = df_y.shape[1]
 
     for i in range(n):
-        Tn_vector = list()
 
         Tn = test_stat(df_y[i], df_x)
-        if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 1)):
+        if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 2)):
             rejected += 1
 
         for j in range(B):
@@ -106,7 +105,7 @@ def type_bootstrap(df_y, df_x, bootstrap_type, function):
         vType = 1
 
         Tn = function(df_y[:, i], df_x)
-        if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 1)):
+        if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 2)):
             rejected += 1
 
         for j in range(B):
