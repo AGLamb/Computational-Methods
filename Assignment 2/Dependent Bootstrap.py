@@ -38,10 +38,10 @@ def main():
 
 
 def Process_data():
-    return pd.read_csv('Regressors.txt', header=None), pd.read_csv('Observables.txt', header=None)
+    return pd.read_csv('Timeseries_het.txt', header=None), pd.read_csv('Timeseries_dep.txt', header=None)
 
 
-def naiveTtest(df_X, df_Y):
+def naiveTtest(df_X, df_Y, c1, c2):
     rejected = 0
     n = df_Y.shape[1]
 
@@ -52,13 +52,6 @@ def naiveTtest(df_X, df_Y):
 
     result = (rejected / n)
     return result
-
-
-def Regress_OLS(Dependent, Independent):
-    Model = sm.OLS(Dependent, Independent)
-    Results = Model.fit()
-    # Results.summary()
-    return Results, Results.resid
 
 
 def pair_bootstrap(df_y, df_x):
@@ -94,16 +87,15 @@ def pair_bootstrap(df_y, df_x):
     return Rej_Rate
 
 
-def type_bootstrap(df_y, df_x, bootstrap_type):
+def type_bootstrap(df_y, df_x, bootstrap_type, c1, c2):
     rejected = 0
     n = df_y.shape[1]
 
     for i in range(n):
-        Model, Residuals = Regress_OLS(df_y[:, i], df_x)
-        y_hat = Model.fittedvalues
+        Model, y_hat = Regress_AR(df_y[:, i])
         vType = 1
 
-        Tn = test_stat(df_y[:, i], df_x)
+        Tn = Dickey_Fuller(df_y[:, i], [2])
         if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 2)):
             rejected += 1
 
@@ -120,7 +112,7 @@ def type_bootstrap(df_y, df_x, bootstrap_type):
                 y_star.append(y_star_i)
 
             y_star = np.array(y_star)
-            Tn = test_stat(y_star, df_x)
+            Tn = Dickey_Fuller(y_star, [2])
 
             if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 1)):
                 rejected += 1
@@ -131,10 +123,16 @@ def type_bootstrap(df_y, df_x, bootstrap_type):
     return Rej_Rate
 
 
-def test_stat(y_vector, x_vector):
-    Model, y_res = Regress_OLS(y_vector, x_vector)
-    Tn = Model.params[2] / np.sqrt(Model.cov_HC0[2][2])
-    return Tn
+def Dickey_Fuller(y_vector, lags_num):
+    DF_stat = adfuller(y_vector, max_lags=lags_num)
+    return DF_stat
+
+
+def Regress_AR(Dependent):
+    Model = AutoReg(Dependent, lags=[2])
+    Results = Model.fit()
+    # Results.summary()
+    return Results, Results.fittedvalues
 
 
 if __name__ == "__main__":
