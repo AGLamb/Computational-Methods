@@ -1,4 +1,4 @@
-from scipy.stats import norm
+from scipy.stats import norm, t
 import statsmodels.api as sm
 import random as rnd
 import pandas as pd
@@ -8,7 +8,7 @@ import random
 
 def main():
     df_X, df_Y = Process_data()
-    naiveTtest(df_X, df_Y)
+    # naiveTtest(df_X, df_Y)
 
     bootstrap(df_Y, df_X, "np")
     bootstrap(df_Y, df_X, "wild")
@@ -25,10 +25,9 @@ def naiveTtest(df_X, df_Y):
     n = len(df_Y.columns)
 
     for i in range(n):
-        Model, y_res = Regress_OLS(df_Y[i], df_X)
-        Tn = Model.params[2] / np.sqrt(Model.cov_HC0[2][2])
+        Tn = test_stat(df_Y[i], df_X)
 
-        if abs(Tn) >= abs(norm.ppf(alpha / 2)):
+        if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_Y) - 1)):
             rejected += 1
 
     print(f' Test rejects H0 is approximately: {(rejected / n) * 100:.2f}%')
@@ -53,10 +52,16 @@ def bootstrap(df_y, df_x, bootstrap_type, B=99):
         Tn_vector = list()
         vType = 1
 
+        Tn = test_stat(df_y[i], df_x)
+        if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 1)):
+            rejected += 1
+        Tn_vector.append(Tn)
+
         for j in range(B):
             y_star = list()
 
             for k in range(len(y_hat)):
+
                 if bootstrap_type == "np":
                     vType = 1
                 elif bootstrap_type == "wild":
@@ -66,18 +71,16 @@ def bootstrap(df_y, df_x, bootstrap_type, B=99):
 
             y_star = pd.DataFrame(y_star)
             Tn = test_stat(y_star, df_x)
-
-            if abs(Tn) >= abs(norm.ppf(alpha / 2)):
+            if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 1)):
                 rejected += 1
-
             Tn_vector.append(Tn)
 
         Tn_vector = pd.DataFrame(Tn_vector)
         df_Tn = pd.concat([df_Tn, Tn_vector], axis=1)
 
-    Rej_Rate = (rejected / (n * B)) * 100
+    Rej_Rate = (rejected / (n * (B + 1))) * 100
     print(f' Test rejects H0 is approximately: {Rej_Rate:.2f}%')
-    # print(df_Tn)
+    print(df_Tn)
     return
 
 
