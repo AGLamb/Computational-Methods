@@ -1,3 +1,4 @@
+from statsmodels.tsa.api import AutoReg, adfuller
 from scipy.stats import norm, t
 import statsmodels.api as sm
 import random as rnd
@@ -18,15 +19,15 @@ def main():
     print(f' Test rejects H0 is approximately: {naive_rate * 100:.2f}%')
     print(f' The p-value is approximately: {naive_pvalue:.2f}')
 
-    # NP_rate = type_bootstrap(df_Y, df_X, "np")
-    # NP_pvalue = 1 - NP_rate
-    # print(f' Test rejects H0 is approximately: {NP_rate:.2f}%')
-    # print(f' The p-value is approximately: {NP_pvalue:.2f}')
+    NP_rate = type_bootstrap(df_Y, df_X, "np", test_stat)
+    NP_pvalue = 1 - NP_rate
+    print(f' Test rejects H0 is approximately: {NP_rate:.2f}%')
+    print(f' The p-value is approximately: {NP_pvalue:.2f}')
 
-    # Wild_rate = type_bootstrap(df_Y, df_X, "wild")
-    # Wild_pvalue = 1 - Wild_rate
-    # print(f' Test rejects H0 is approximately: {Wild_rate * 100:.2f}%')
-    # print(f' The p-value is approximately: {Wild_pvalue:.2f}')
+    Wild_rate = type_bootstrap(df_Y, df_X, "wild", test_stat)
+    Wild_pvalue = 1 - Wild_rate
+    print(f' Test rejects H0 is approximately: {Wild_rate * 100:.2f}%')
+    print(f' The p-value is approximately: {Wild_pvalue:.2f}')
 
     Pair_rate = pair_bootstrap(df_Y, df_X)
     Pair_pvalue = 1 - Pair_rate
@@ -66,8 +67,6 @@ def pair_bootstrap(df_y, df_x):
     n = len(df_y.columns)
 
     for i in range(n):
-        Model, Residuals = Regress_OLS(df_y[i], df_x)
-        y_hat = Model.fittedvalues
         Tn_vector = list()
 
         Tn = test_stat(df_y[i], df_x)
@@ -98,13 +97,14 @@ def pair_bootstrap(df_y, df_x):
 
         Tn_vector = pd.DataFrame(Tn_vector)
         df_Tn = pd.concat([df_Tn, Tn_vector], axis=1)
+        print(f'{i} - Cycles Done')
 
     Rej_Rate = (rejected / (n * (B + 1)))
     print(df_Tn)
     return Rej_Rate
 
 
-def type_bootstrap(df_y, df_x, bootstrap_type):
+def type_bootstrap(df_y, df_x, bootstrap_type, function):
     df_Tn = pd.DataFrame()
     rejected = 0
     n = len(df_y.columns)
@@ -115,7 +115,7 @@ def type_bootstrap(df_y, df_x, bootstrap_type):
         Tn_vector = list()
         vType = 1
 
-        Tn = test_stat(df_y[i], df_x)
+        Tn = function(df_y[i], df_x)
         if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 1)):
             rejected += 1
         Tn_vector.append(Tn)
@@ -133,7 +133,7 @@ def type_bootstrap(df_y, df_x, bootstrap_type):
                 y_star.append(y_star_i)
 
             y_star = pd.DataFrame(y_star)
-            Tn = test_stat(y_star, df_x)
+            Tn = function(y_star, df_x)
 
             if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 1)):
                 rejected += 1
@@ -146,6 +146,11 @@ def type_bootstrap(df_y, df_x, bootstrap_type):
     Rej_Rate = (rejected / (n * (B + 1)))
     # print(df_Tn)
     return Rej_Rate
+
+
+def Dickey_Fuller(y_vector):
+    DF_stat = adfuller(y_vector)
+    return DF_stat
 
 
 def test_stat(y_vector, x_vector):
