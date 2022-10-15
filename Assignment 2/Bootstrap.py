@@ -75,7 +75,7 @@ def bootstrap(df_y, df_x, bootstrap_type, B=99):
         Tn_vector = pd.DataFrame(Tn_vector)
         df_Tn = pd.concat([df_Tn, Tn_vector], axis=1)
 
-    Rej_Rate = (rejected / n) * 100
+    Rej_Rate = (rejected / (n * B)) * 100
     print(f' Test rejects H0 is approximately: {Rej_Rate:.2f}%')
     # print(df_Tn)
     return
