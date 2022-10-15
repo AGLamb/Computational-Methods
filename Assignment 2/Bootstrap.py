@@ -13,26 +13,27 @@ alpha = 0.05
 
 def main():
     df_X, df_Y = Process_data()
+    df_X, df_Y = df_X.to_numpy(), df_Y.to_numpy()
 
-    naive_rate = naiveTtest(df_X, df_Y)
-    naive_pvalue = 1 - naive_rate
-    print(f' Test rejects H0 is approximately: {naive_rate * 100:.2f}%')
-    print(f' The p-value is approximately: {naive_pvalue:.2f}')
+    # naive_rate = naiveTtest(df_X, df_Y)
+    # naive_pvalue = 1 - naive_rate
+    # print(f' Test rejects H0 is approximately: {naive_rate * 100:.2f}%')
+    # print(f' The p-value is approximately: {naive_pvalue:.2f}')
 
     NP_rate = type_bootstrap(df_Y, df_X, "np", test_stat)
     NP_pvalue = 1 - NP_rate
     print(f' Test rejects H0 is approximately: {NP_rate:.2f}%')
     print(f' The p-value is approximately: {NP_pvalue:.2f}')
-
-    Wild_rate = type_bootstrap(df_Y, df_X, "wild", test_stat)
-    Wild_pvalue = 1 - Wild_rate
-    print(f' Test rejects H0 is approximately: {Wild_rate * 100:.2f}%')
-    print(f' The p-value is approximately: {Wild_pvalue:.2f}')
-
-    Pair_rate = pair_bootstrap(df_Y, df_X)
-    Pair_pvalue = 1 - Pair_rate
-    print(f' Test rejects H0 is approximately: {Pair_rate * 100:.2f}%')
-    print(f' The p-value is approximately: {Pair_pvalue:.2f}')
+    #
+    # Wild_rate = type_bootstrap(df_Y, df_X, "wild", test_stat)
+    # Wild_pvalue = 1 - Wild_rate
+    # print(f' Test rejects H0 is approximately: {Wild_rate * 100:.2f}%')
+    # print(f' The p-value is approximately: {Wild_pvalue:.2f}')
+    #
+    # Pair_rate = pair_bootstrap(df_Y, df_X)
+    # Pair_pvalue = 1 - Pair_rate
+    # print(f' Test rejects H0 is approximately: {Pair_rate * 100:.2f}%')
+    # print(f' The p-value is approximately: {Pair_pvalue:.2f}')
     return
 
 
@@ -42,10 +43,10 @@ def Process_data():
 
 def naiveTtest(df_X, df_Y):
     rejected = 0
-    n = len(df_Y.columns)
+    n = df_Y.shape[1]
 
     for i in range(n):
-        Tn = test_stat(df_Y[i], df_X)
+        Tn = test_stat(df_Y[:, i], df_X)
 
         if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_Y) - 1)):
             rejected += 1
@@ -62,9 +63,8 @@ def Regress_OLS(Dependent, Independent):
 
 
 def pair_bootstrap(df_y, df_x):
-    df_Tn = pd.DataFrame()
     rejected = 0
-    n = len(df_y.columns)
+    n = df_y.shape[1]
 
     for i in range(n):
         Tn_vector = list()
@@ -72,53 +72,42 @@ def pair_bootstrap(df_y, df_x):
         Tn = test_stat(df_y[i], df_x)
         if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 1)):
             rejected += 1
-        Tn_vector.append(Tn)
 
         for j in range(B):
             y_star = list()
-            x_star = pd.DataFrame()
+            x_star = np.zeros(3, 0)
 
             for k in range(len(df_y)):
                 index = random.randint(0, len(df_y) - 1)
-                x_star_i = df_x.iloc[[index]]
+                x_star_i = df_x.iloc[[index]].to_numpy()
                 y_star_i = df_y[i][index]
                 y_star.append(y_star_i)
-                x_star = x_star.append(x_star_i)
+                x_star = np.concatenate([x_star, x_star_i], axis=1)
 
-            x_star = x_star.reset_index()
-            del x_star["index"]
-            y_star = pd.DataFrame(y_star)
+            y_star = np.array(y_star)
             Tn = test_stat(y_star, x_star)
 
             if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 1)):
                 rejected += 1
 
-            Tn_vector.append(Tn)
-
-        Tn_vector = pd.DataFrame(Tn_vector)
-        df_Tn = pd.concat([df_Tn, Tn_vector], axis=1)
         print(f'{i} - Cycles Done')
 
     Rej_Rate = (rejected / (n * (B + 1)))
-    print(df_Tn)
     return Rej_Rate
 
 
 def type_bootstrap(df_y, df_x, bootstrap_type, function):
-    df_Tn = pd.DataFrame()
     rejected = 0
-    n = len(df_y.columns)
+    n = df_y.shape[1]
 
     for i in range(n):
-        Model, Residuals = Regress_OLS(df_y[i], df_x)
+        Model, Residuals = Regress_OLS(df_y[:, i], df_x)
         y_hat = Model.fittedvalues
-        Tn_vector = list()
         vType = 1
 
-        Tn = function(df_y[i], df_x)
+        Tn = function(df_y[:, i], df_x)
         if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 1)):
             rejected += 1
-        Tn_vector.append(Tn)
 
         for j in range(B):
             y_star = list()
@@ -132,19 +121,15 @@ def type_bootstrap(df_y, df_x, bootstrap_type, function):
                 y_star_i = y_hat[k] + random.choice(Residuals) * vType
                 y_star.append(y_star_i)
 
-            y_star = pd.DataFrame(y_star)
+            y_star = np.array(y_star)
             Tn = function(y_star, df_x)
 
             if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 1)):
                 rejected += 1
 
-            Tn_vector.append(Tn)
-
-        Tn_vector = pd.DataFrame(Tn_vector)
-        df_Tn = pd.concat([df_Tn, Tn_vector], axis=1)
+        print(f'{i} cycle')
 
     Rej_Rate = (rejected / (n * (B + 1)))
-    # print(df_Tn)
     return Rej_Rate
 
 
