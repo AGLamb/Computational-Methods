@@ -16,24 +16,16 @@ def main():
     df_X, df_Y = df_X.to_numpy(), df_Y.to_numpy()
 
     naive_rate = naiveTtest(df_X, df_Y)
-    naive_pvalue = 1 - naive_rate
     print(f'Naive Test\nTest rejects H0 is approximately: {naive_rate * 100:.2f}%')
-    print(f'The p-value is approximately: {naive_pvalue:.2f}')
 
-    NP_rejection = bootstrap(df_Y, df_X, "np")
-    NP_pvalue = 1 - NP_rejection
-    print(f'Non Paremetric Bootstrap\nThe rejection rate is on average: {np.average(NP_rejection) * 100:.2f}%')
-    print(f'The p-value is on average: {np.average(NP_pvalue):.2f}')
+    NP_rate = bootstrap(df_Y, df_X, "np")
+    print(f'Non Paremetric Bootstrap\nThe rejection rate is on average: {np.average(NP_rate) * 100:.2f}%')
 
-    Wild_rejection = bootstrap(df_Y, df_X, "wild")
-    Wild_pvalue = 1 - Wild_rejection
-    print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Wild_rejection) * 100:.2f}%')
-    print(f'The p-value is on average: {np.average(Wild_pvalue):.2f}')
+    Wild_rate = bootstrap(df_Y, df_X, "wild")
+    print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Wild_rate) * 100:.2f}%')
 
-    Pair_rejection = bootstrap(df_Y, df_X, "wild")
-    Pair_pvalue = 1 - Pair_rejection
-    print(f'Pairs Bootstrap\nThe rejection rate is on average: {np.average(Pair_rejection) * 100:.2f}%')
-    print(f'The p-value is on average: {np.average(Pair_pvalue):.2f}')
+    Pair_rate = bootstrap(df_Y, df_X, "wild")
+    print(f'Pairs Bootstrap\nThe rejection rate is on average: {np.average(Pair_rate) * 100:.2f}%')
     return
 
 
@@ -70,7 +62,7 @@ def Regress_OLS(Dependent, Independent):
 
 
 def bootstrap(df_y, df_x, bootstrap_type):
-    n = df_y.shape[1]
+    n = 200  # df_y.shape[1]
     p_vector = list()
     for i in range(n):
 
@@ -104,7 +96,9 @@ def Simulate_type(df_y, df_x, type_btstrp):
         y_star = np.array(y_star)
         Tn = test_stat(y_star, x_star)
     else:
-        Model, Residuals = Regress_OLS(df_y, df_x)
+        X_Res = df_x.copy()
+        X_Res[:, 1] = 0
+        Model, Residuals = Regress_OLS(df_y, X_Res)
         y_hat = Model.fittedvalues
         for k in range(df_y.shape[0]):
             if type_btstrp == "np":
@@ -122,7 +116,7 @@ def Simulate_type(df_y, df_x, type_btstrp):
 
 def test_stat(y_vector, x_vector):
     Model, y_res = Regress_OLS(y_vector, x_vector)
-    Tn = Model.params[2] / np.sqrt(Model.cov_HC0[2][2])
+    Tn = Model.params[1] / np.sqrt(Model.cov_HC0[1][1])
     return Tn
 
 

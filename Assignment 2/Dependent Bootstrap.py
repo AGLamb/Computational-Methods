@@ -22,7 +22,7 @@ def main():
 
     NP_rejection = bootstrap(df_X, "np")
     NP_pvalue = 1 - NP_rejection
-    print(f'Non Paremetric Bootstrap\nThe rejection rate is on average: {np.average(NP_rejection) * 100:.2f}%')
+    print(f'Non Parametric Bootstrap\nThe rejection rate is on average: {np.average(NP_rejection) * 100:.2f}%')
     print(f'The p-value is on average: {np.average(NP_pvalue):.2f}')
 
     Wild_rejection = bootstrap(df_X, "wild")
@@ -30,10 +30,15 @@ def main():
     print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Wild_rejection) * 100:.2f}%')
     print(f'The p-value is on average: {np.average(Wild_pvalue):.2f}')
 
-    Pair_rejection = bootstrap(df_X, "wild")
-    Pair_pvalue = 1 - Pair_rejection
-    print(f'Pairs Bootstrap\nThe rejection rate is on average: {np.average(Pair_rejection) * 100:.2f}%')
-    print(f'The p-value is on average: {np.average(Pair_pvalue):.2f}')
+    Sieve_rejection = bootstrap(df_X, "wild")
+    Sieve_pvalue = 1 - Wild_rejection
+    print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Sieve_rejection) * 100:.2f}%')
+    print(f'The p-value is on average: {np.average(Sieve_pvalue):.2f}')
+
+    Block_rejection = bootstrap(df_X, "wild")
+    Block_pvalue = 1 - Wild_rejection
+    print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Block_rejection) * 100:.2f}%')
+    print(f'The p-value is on average: {np.average(Block_pvalue):.2f}')
     return
 
 
@@ -41,25 +46,24 @@ def Process_data():
     return pd.read_csv('Timeseries_het.txt', header=None), pd.read_csv('Timeseries_dep.txt', header=None)
 
 
-def naiveTtest(df_X):
+def naiveTtest(df_Y):
     rejected = 0
     n = df_Y.shape[1]
 
     for i in range(n):
-        Tn = test_stat(df_Y[:, i], df_X)
-        if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_Y) - 2)):
+        Tn = adfuller(df_Y[:, i])
+        if Tn[0] < -1.95:
             rejected += 1
 
-    result = (rejected / n)
-    return result
+    return rejected / n
 
 
-def rejection_rate(t_star, df_y):
+def rejection_rate(t_star):
     rejected = 0
-    for i in range(len(t_star)):
-        if abs(t_star[i]) >= abs(t.ppf(alpha / 2, len(df_y) - 2)):
+    for i in range(t_star.shape[0]):
+        if t_star[i] < -1.95:
             rejected += 1
-    return rejected / (len(t_star) + 1)
+    return rejected / (t_star.shape[0] + 1)
 
 
 def bootstrap(df_y, bootstrap_type):
@@ -69,14 +73,14 @@ def bootstrap(df_y, bootstrap_type):
 
         Tn_column = list()
         Tn = adfuller(df_y[:, i])
-        Tn_column.append(Tn)
+        Tn_column.append(Tn[0])
 
         for j in range(B):
             y_star, Tn = Simulate_type(df_y[:, i], bootstrap_type)
             Tn_column.append(Tn)
 
         Tn_column = np.array(Tn_column).transpose()
-        p_value = rejection_rate(Tn_column, df_y[:, i])
+        p_value = rejection_rate(Tn_column)
         p_vector.append(p_value)
 
     p_vector = np.array(p_vector)
@@ -87,7 +91,7 @@ def Simulate_type(df_y, type_btstrp):
     y_star = list()
     Model, Residuals = Regress_AR(df_y)
     y_hat = Model.fittedvalues
-    for k in range(df_y.shape[0]):
+    for k in range(y_hat.shape[0]):
         if type_btstrp == "np":
             vType = 1
             y_star_i = y_hat[k] + random.choice(Residuals) * vType
@@ -98,7 +102,7 @@ def Simulate_type(df_y, type_btstrp):
             y_star.append(y_star_i)
     y_star = np.array(y_star)
     Tn = adfuller(y_star)
-    return y_star, Tn
+    return y_star, Tn[0]
 
 
 def Regress_AR(Dependent):
