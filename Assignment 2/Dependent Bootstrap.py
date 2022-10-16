@@ -82,8 +82,7 @@ def bootstrap(df_y, bootstrap_type):
         p_value = rejection_rate(Tn_column)
         p_vector.append(p_value)
 
-    p_vector = np.array(p_vector)
-    return p_vector
+    return np.array(p_vector)
 
 
 def Simulate_type(df_y, type_btstrp):
@@ -107,15 +106,12 @@ def Simulate_type(df_y, type_btstrp):
             vType = random.normalvariate(0, 1)
             y_star_i = (1 - phi) * y_star[i - 1] + phi * y_star[i - 2] + random.choice(Residuals) * vType
             y_star.append(y_star_i)
-    y_star = np.array(y_star)
-    Tn = DF_manual(y_star)
-    return y_star, Tn
+    return np.array(y_star), DF_manual(y_star)
 
 
 def Regress_AR(Dependent):
     Model = AutoReg(Dependent, lags=[1])
     Results = Model.fit()
-    # Results.summary()
     return Results, Results.resid
 
 
