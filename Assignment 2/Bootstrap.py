@@ -17,12 +17,23 @@ def main():
 
     naive_rate = naiveTtest(df_X, df_Y)
     naive_pvalue = 1 - naive_rate
-    print(f' Test rejects H0 is approximately: {naive_rate * 100:.2f}%')
-    print(f' The p-value is approximately: {naive_pvalue:.2f}')
+    print(f'Naive Test\nTest rejects H0 is approximately: {naive_rate * 100:.2f}%')
+    print(f'The p-value is approximately: {naive_pvalue:.2f}')
 
     NP_rejection = bootstrap(df_Y, df_X, "np")
-    print(f' The rejection rate is on average: {np.average(NP_rejection) * 100:.2f}%')
+    NP_pvalue = 1 - NP_rejection
+    print(f'Non Paremetric Bootstrap\nThe rejection rate is on average: {np.average(NP_rejection) * 100:.2f}%')
+    print(f'The p-value is on average: {np.average(NP_pvalue):.2f}')
 
+    Wild_rejection = bootstrap(df_Y, df_X, "wild")
+    Wild_pvalue = 1 - Wild_rejection
+    print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Wild_rejection) * 100:.2f}%')
+    print(f'The p-value is on average: {np.average(Wild_pvalue):.2f}')
+
+    Pair_rejection = bootstrap(df_Y, df_X, "wild")
+    Pair_pvalue = 1 - Pair_rejection
+    print(f'Pairs Bootstrap\nThe rejection rate is on average: {np.average(Pair_rejection) * 100:.2f}%')
+    print(f'The p-value is on average: {np.average(Pair_pvalue):.2f}')
     return
 
 
@@ -59,7 +70,7 @@ def Regress_OLS(Dependent, Independent):
 
 
 def bootstrap(df_y, df_x, bootstrap_type):
-    n = df_y.shape[1]
+    n = 200  # df_y.shape[1]
     p_vector = list()
     for i in range(n):
 
