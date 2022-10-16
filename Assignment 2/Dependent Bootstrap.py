@@ -1,3 +1,5 @@
+from recombinator.optimal_block_length import optimal_block_length
+from recombinator.block_bootstrap import circular_block_bootstrap
 from statsmodels.tsa.api import AutoReg, adfuller
 from scipy.stats import norm, t
 import statsmodels.api as sm
@@ -5,6 +7,7 @@ import random as rnd
 import pandas as pd
 import numpy as np
 import random
+import math
 
 
 B = 99
@@ -14,20 +17,20 @@ alpha = 0.05
 def main():
     Y = getVariable('Timeseries_het.txt')
 
-    naive_rate = naiveTtest(Y)
-    print(f'Naive Test\nTest rejects H0 approximately: {naive_rate * 100:.2f}%')
-
-    NP_rejection = bootstrap(Y, "np")
-    print(f'Non Parametric Bootstrap\nThe rejection rate is on average: {np.average(NP_rejection) * 100:.2f}%')
-
-    Wild_rejection = bootstrap(Y, "wild")
-    print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Wild_rejection) * 100:.2f}%')
+    # naive_rate = naiveTtest(Y)
+    # print(f'Naive Test\nTest rejects H0 approximately: {naive_rate * 100:.2f}%')
     #
-    Sieve_rejection = bootstrap(Y, "sieve")
-    print(f'Sieve Bootstrap\nThe rejection rate is on average: {np.average(Sieve_rejection) * 100:.2f}%')
+    # NP_rejection = bootstrap(Y, "np")
+    # print(f'Non Parametric Bootstrap\nThe rejection rate is on average: {np.average(NP_rejection) * 100:.2f}%')
+    #
+    # Wild_rejection = bootstrap(Y, "wild")
+    # print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Wild_rejection) * 100:.2f}%')
+    # #
+    # Sieve_rejection = bootstrap(Y, "sieve")
+    # print(f'Sieve Bootstrap\nThe rejection rate is on average: {np.average(Sieve_rejection) * 100:.2f}%')
 
-    # Block_rejection = bootstrap(Y, "block")
-    # print(f'Block Bootstrap\nThe rejection rate is on average: {np.average(Block_rejection) * 100:.2f}%')
+    Block_rejection = bootstrap(Y, "block")
+    print(f'Block Bootstrap\nThe rejection rate is on average: {np.average(Block_rejection) * 100:.2f}%')
     return
 
 
@@ -94,7 +97,7 @@ def Simulate_type(df_y, type_btstrp):
     elif type_btstrp == "sieve":
         y_star = sieve_simulation(df_y, Residuals, phi)
     elif type_btstrp == "block":
-        y_star = block_simulation()
+        y_star = block_simulation(df_y, Residuals, phi)
     else:
         Residuals -= np.average(Residuals)
         y_star = np_simulation(df_y, Residuals, phi)
@@ -130,8 +133,12 @@ def sieve_simulation(df_y, Residuals, phi):
     return y_star
 
 
-def block_simulation():
-    return 0
+def block_simulation(df_y, Residuals, phi):
+    b_star = optimal_block_length(Residuals)
+    b_star_sb = b_star[0].b_star_sb
+    b_star_cb = math.ceil(b_star[0].b_star_cb)
+    print(b_star_cb)
+    return
 
 
 def wild_simulation(df_y, Residuals, phi):
