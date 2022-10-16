@@ -15,25 +15,14 @@ def main():
     df_X, df_Y = Process_data()
     df_X, df_Y = df_X.to_numpy(), df_Y.to_numpy()
 
-    naive_rate = naiveTtest(df_X, df_Y)
-    naive_pvalue = 1 - naive_rate
-    print(f' Test rejects H0 is approximately: {naive_rate * 100:.2f}%')
-    print(f' The p-value is approximately: {naive_pvalue:.2f}')
+    # naive_rate = naiveTtest(df_X, df_Y)
+    # naive_pvalue = 1 - naive_rate
+    # print(f' Test rejects H0 is approximately: {naive_rate * 100:.2f}%')
+    # print(f' The p-value is approximately: {naive_pvalue:.2f}')
 
-    NP_rate = type_bootstrap(df_Y, df_X, "np")
-    NP_pvalue = 1 - NP_rate
-    print(f' Test rejects H0 is approximately: {NP_rate:.2f}%')
-    print(f' The p-value is approximately: {NP_pvalue:.2f}')
+    NP_rejection = bootstrap(df_Y, df_X, "np")
+    print(f' The rejection rate is on average: {np.average(NP_rejection) * 100:.2f}%')
 
-    Wild_rate = type_bootstrap(df_Y, df_X, "wild")
-    Wild_pvalue = 1 - Wild_rate
-    print(f' Test rejects H0 is approximately: {Wild_rate * 100:.2f}%')
-    print(f' The p-value is approximately: {Wild_pvalue:.2f}')
-
-    Pair_rate = pair_bootstrap(df_Y, df_X)
-    Pair_pvalue = 1 - Pair_rate
-    print(f' Test rejects H0 is approximately: {Pair_rate * 100:.2f}%')
-    print(f' The p-value is approximately: {Pair_pvalue:.2f}')
     return
 
 
@@ -54,6 +43,14 @@ def naiveTtest(df_X, df_Y):
     return result
 
 
+def rejection_rate(t_star, df_y):
+    rejected = 0
+    for i in range(len(t_star)):
+        if abs(t_star[i]) >= abs(t.ppf(alpha / 2, len(df_y) - 2)):
+            rejected += 1
+    return rejected / (len(t_star) + 1)
+
+
 def Regress_OLS(Dependent, Independent):
     Model = sm.OLS(Dependent, Independent)
     Results = Model.fit()
@@ -61,74 +58,55 @@ def Regress_OLS(Dependent, Independent):
     return Results, Results.resid
 
 
-def pair_bootstrap(df_y, df_x):
-    rejected = 0
+def bootstrap(df_y, df_x, bootstrap_type):
     n = df_y.shape[1]
-
+    p_vector = list()
     for i in range(n):
 
-        Tn = test_stat(df_y[i], df_x)
-        if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 2)):
-            rejected += 1
-
-        for j in range(B):
-            y_star = list()
-            x_star = np.zeros(3, 0)
-
-            for k in range(len(df_y)):
-                index = random.randint(0, len(df_y) - 1)
-                x_star_i = df_x.iloc[[index]].to_numpy()
-                y_star_i = df_y[i][index]
-                y_star.append(y_star_i)
-                x_star = np.concatenate([x_star, x_star_i], axis=1)
-
-            y_star = np.array(y_star)
-            Tn = test_stat(y_star, x_star)
-
-            if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 1)):
-                rejected += 1
-
-        print(f'{i} - Cycles Done')
-
-    Rej_Rate = (rejected / (n * (B + 1)))
-    return Rej_Rate
-
-
-def type_bootstrap(df_y, df_x, bootstrap_type):
-    rejected = 0
-    n = df_y.shape[1]
-
-    for i in range(n):
-        Model, Residuals = Regress_OLS(df_y[:, i], df_x)
-        y_hat = Model.fittedvalues
-        vType = 1
-
+        Tn_column = list()
         Tn = test_stat(df_y[:, i], df_x)
-        if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 2)):
-            rejected += 1
+        Tn_column.append(Tn)
 
         for j in range(B):
-            y_star = list()
+            y_star, Tn = Simulate_type(df_y[:, i], df_x, bootstrap_type)
+            Tn_column.append(Tn)
 
-            for k in range(len(y_hat)):
+        Tn_column = np.array(Tn_column).transpose()
+        p_value = MC_Pvalue(Tn_column, df_y[:, i])
+        p_vector.append(p_value)
 
-                if bootstrap_type == "np":
-                    vType = 1
-                elif bootstrap_type == "wild":
-                    vType = random.normalvariate(0, 1)
+    p_vector = np.array(p_vector)
+    return p_vector
+
+
+def Simulate_type(df_y, df_x, type_btstrp):
+    y_star = list()
+    if type_btstrp == "pair":
+        x_star = list()
+        for k in range(df_y.shape[0]):
+            index = random.randint(0, len(df_y) - 1)
+            x_star_i = df_x.iloc[[index]].tolist()
+            y_star_i = df_y[i][index]
+            y_star.append(y_star_i)
+            x_star.append(x_star_i)
+        x_star = np.array(x_star)
+        y_star = np.array(y_star)
+        Tn = test_stat(y_star, x_star)
+    else:
+        Model, Residuals = Regress_OLS(df_y, df_x)
+        y_hat = Model.fittedvalues
+        for k in range(df_y.shape[0]):
+            if type_btstrp == "np":
+                vType = 1
                 y_star_i = y_hat[k] + random.choice(Residuals) * vType
                 y_star.append(y_star_i)
-
-            y_star = np.array(y_star)
-            Tn = test_stat(y_star, df_x)
-
-            if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_y) - 1)):
-                rejected += 1
-
-        print(f'{i} cycle')
-
-    Rej_Rate = (rejected / (n * (B + 1)))
-    return Rej_Rate
+            elif type_btstrp == "wild":
+                vType = random.normalvariate(0, 1)
+                y_star_i = y_hat[k] + random.choice(Residuals) * vType
+                y_star.append(y_star_i)
+        y_star = np.array(y_star)
+        Tn = test_stat(y_star, df_x)
+    return y_star, Tn
 
 
 def test_stat(y_vector, x_vector):

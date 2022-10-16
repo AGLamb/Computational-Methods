@@ -15,22 +15,22 @@ def main():
     df_X, df_Y = Process_data()
     df_X, df_Y = df_X.to_numpy(), df_Y.to_numpy()
 
-    naive_rate = naiveTtest(df_X, df_Y)
+    naive_rate = naiveTtest(df_X, df_X, c1, c2)
     naive_pvalue = 1 - naive_rate
     print(f' Test rejects H0 is approximately: {naive_rate * 100:.2f}%')
     print(f' The p-value is approximately: {naive_pvalue:.2f}')
 
-    NP_rate = type_bootstrap(df_Y, df_X, "np")
+    NP_rate = type_bootstrap(df_X, df_X, c1, c2)
     NP_pvalue = 1 - NP_rate
     print(f' Test rejects H0 is approximately: {NP_rate:.2f}%')
     print(f' The p-value is approximately: {NP_pvalue:.2f}')
 
-    Wild_rate = type_bootstrap(df_Y, df_X, "wild")
+    Wild_rate = type_bootstrap(df_X, df_X)
     Wild_pvalue = 1 - Wild_rate
     print(f' Test rejects H0 is approximately: {Wild_rate * 100:.2f}%')
     print(f' The p-value is approximately: {Wild_pvalue:.2f}')
 
-    Pair_rate = pair_bootstrap(df_Y, df_X)
+    Pair_rate = pair_bootstrap(df_Y, df_X, c1, c2)
     Pair_pvalue = 1 - Pair_rate
     print(f' Test rejects H0 is approximately: {Pair_rate * 100:.2f}%')
     print(f' The p-value is approximately: {Pair_pvalue:.2f}')
@@ -126,6 +126,19 @@ def type_bootstrap(df_y, df_x, bootstrap_type, c1, c2):
 def Dickey_Fuller(y_vector, lags_num):
     DF_stat = adfuller(y_vector, max_lags=lags_num)
     return DF_stat
+
+
+def MC_Pvalue(db_star, db_test, c1, c2):
+    rejected = 0
+
+    for i in range(len(db_star)):
+        if db_star[i] > c2 or db_star[i] < c1:
+            rejected += 1
+
+    if db_test > c2 or db_test < c1:
+        rejected += 1
+
+    return rejected / (len(db_star) + 1)
 
 
 def Regress_AR(Dependent):
