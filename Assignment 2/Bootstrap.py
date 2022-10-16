@@ -39,19 +39,22 @@ def naiveTtest(df_X, df_Y):
 
     for i in range(n):
         Tn = test_stat(df_Y[:, i], df_X)
+
         if abs(Tn) >= abs(t.ppf(alpha / 2, len(df_Y) - 2)):
             rejected += 1
 
-    result = (rejected / n)
-    return result
+    return rejected / n
 
 
 def rejection_rate(t_star, df_y):
     rejected = 0
+
     for i in range(len(t_star)):
+
         if abs(t_star[i]) >= abs(t.ppf(alpha / 2, len(df_y) - 2)):
             rejected += 1
-    return rejected / (len(t_star) + 1)
+
+    return rejected / len(t_star)
 
 
 def Regress_OLS(Dependent, Independent):
@@ -62,8 +65,9 @@ def Regress_OLS(Dependent, Independent):
 
 
 def bootstrap(df_y, df_x, bootstrap_type):
-    n = df_y.shape[1]
+    n = 200  # df_y.shape[1]
     p_vector = list()
+
     for i in range(n):
 
         Tn_column = list()
@@ -84,23 +88,29 @@ def bootstrap(df_y, df_x, bootstrap_type):
 
 def Simulate_type(df_y, df_x, type_btstrp):
     y_star = list()
+
     if type_btstrp == "pair":
         x_star = list()
+
         for k in range(df_y.shape[0]):
             index = random.randint(0, len(df_y) - 1)
             x_star_i = df_x.iloc[[index]].tolist()
             y_star_i = df_y[i][index]
             y_star.append(y_star_i)
             x_star.append(x_star_i)
+
         x_star = np.array(x_star)
         y_star = np.array(y_star)
         Tn = test_stat(y_star, x_star)
+
     else:
         X_Res = df_x.copy()
         X_Res[:, 1] = 0
         Model, Residuals = Regress_OLS(df_y, X_Res)
         y_hat = Model.fittedvalues
+
         for k in range(df_y.shape[0]):
+
             if type_btstrp == "np":
                 vType = 1
                 y_star_i = y_hat[k] + random.choice(Residuals) * vType
@@ -109,8 +119,10 @@ def Simulate_type(df_y, df_x, type_btstrp):
                 vType = random.normalvariate(0, 1)
                 y_star_i = y_hat[k] + random.choice(Residuals) * vType
                 y_star.append(y_star_i)
+
         y_star = np.array(y_star)
         Tn = test_stat(y_star, df_x)
+
     return y_star, Tn
 
 
