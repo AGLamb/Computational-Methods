@@ -15,10 +15,10 @@ def main():
     df_X, df_Y = Process_data()
     df_X, df_Y = df_X.to_numpy(), df_Y.to_numpy()
 
-    # naive_rate = naiveTtest(df_X, df_Y)
-    # naive_pvalue = 1 - naive_rate
-    # print(f' Test rejects H0 is approximately: {naive_rate * 100:.2f}%')
-    # print(f' The p-value is approximately: {naive_pvalue:.2f}')
+    naive_rate = naiveTtest(df_X, df_Y)
+    naive_pvalue = 1 - naive_rate
+    print(f' Test rejects H0 is approximately: {naive_rate * 100:.2f}%')
+    print(f' The p-value is approximately: {naive_pvalue:.2f}')
 
     NP_rejection = bootstrap(df_Y, df_X, "np")
     print(f' The rejection rate is on average: {np.average(NP_rejection) * 100:.2f}%')
@@ -72,7 +72,7 @@ def bootstrap(df_y, df_x, bootstrap_type):
             Tn_column.append(Tn)
 
         Tn_column = np.array(Tn_column).transpose()
-        p_value = MC_Pvalue(Tn_column, df_y[:, i])
+        p_value = rejection_rate(Tn_column, df_y[:, i])
         p_vector.append(p_value)
 
     p_vector = np.array(p_vector)
