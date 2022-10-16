@@ -15,19 +15,19 @@ def main():
     Y = getVariable('Timeseries_het.txt')
 
     naive_rate = naiveTtest(Y)
-    print(f'Naive Test\nTest rejects H0 is approximately: {naive_rate * 100:.2f}%')
+    print(f'Naive Test\nTest rejects H0 approximately: {naive_rate * 100:.2f}%')
 
     NP_rejection = bootstrap(Y, "np")
     print(f'Non Parametric Bootstrap\nThe rejection rate is on average: {np.average(NP_rejection) * 100:.2f}%')
 
     Wild_rejection = bootstrap(Y, "wild")
     print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Wild_rejection) * 100:.2f}%')
-
-    # Sieve_rejection = bootstrap(df_X, "wild")
-    # print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Sieve_rejection) * 100:.2f}%')
     #
-    # Block_rejection = bootstrap(df_X, "wild")
-    # print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Block_rejection) * 100:.2f}%')
+    Sieve_rejection = bootstrap(Y, "sieve")
+    print(f'Sieve Bootstrap\nThe rejection rate is on average: {np.average(Sieve_rejection) * 100:.2f}%')
+
+    # Block_rejection = bootstrap(Y, "block")
+    # print(f'Block Bootstrap\nThe rejection rate is on average: {np.average(Block_rejection) * 100:.2f}%')
     return
 
 
@@ -75,42 +75,92 @@ def bootstrap(df_y, bootstrap_type):
         Tn_column.append(Tn)
 
         for j in range(B):
-            y_star, Tn = Simulate_type(df_y[:, i], bootstrap_type)
+            Tn = Simulate_type(df_y[:, i], bootstrap_type)
             Tn_column.append(Tn)
 
         Tn_column = np.array(Tn_column).transpose()
         p_value = rejection_rate(Tn_column)
         p_vector.append(p_value)
 
-    return np.array(p_vector)
+    p_vector = np.array(p_vector)
+    return p_vector
 
 
 def Simulate_type(df_y, type_btstrp):
-    y_star = list()
-    Model, Residuals = Regress_AR(df_y)
+    Model, Residuals = Regress_AR(df_y, [1])
     phi = Model.params[0]
-    if type_btstrp == "np":
-        vType = 1
-        y_star.append(random.choice(Residuals) * vType)
-        y_star.append((1 - phi) * y_star[0] + random.choice(Residuals) * vType)
-    elif type_btstrp == "wild":
-        vType = random.normalvariate(0, 1)
-        y_star.append(random.choice(Residuals) * vType)
-        y_star.append((1 - phi) * y_star[0] + random.choice(Residuals) * vType)
+    if type_btstrp == "wild":
+        y_star = wild_simulation(df_y, Residuals, phi)
+    elif type_btstrp == "sieve":
+        y_star = sieve_simulation(df_y, Residuals, phi)
+    elif type_btstrp == "block":
+        y_star = block_simulation()
+    else:
+        Residuals -= np.average(Residuals)
+        y_star = np_simulation(df_y, Residuals, phi)
+    Tn = DF_manual(y_star)
+    return Tn
+
+
+def sieve_simulation(df_y, Residuals, phi):
+    y_star = list()
+    eta = list()
+    Model, Res = Regress_AR(Residuals, [1, 2, 3, 4, 5])
+    Res -= np.average(Res)
+
+    for k in range(5):
+        eta_i = Res[k]
+        eta.append(eta_i)
+
+    for j in range(5, len(Res)):
+        eta_i = (Model.params[0] * eta[j - 1]) + (Model.params[1] * eta[j - 2]) + (Model.params[2] * eta[j - 3]) + \
+                (Model.params[3] * eta[j - 4]) + (Model.params[4] * eta[j - 5]) + random.choice(Res)
+        eta.append(eta_i)
+
+    y_star.append((random.choice(eta) * random.normalvariate(0, 1)))
+    y_star_i = ((1 - phi) * y_star[0]) + (random.choice(eta) * random.normalvariate(0, 1))
+    y_star.append(y_star_i)
+
     for i in range(2, df_y.shape[0]):
-        if type_btstrp == "np":
-            vType = 1
-            y_star_i = (1 - phi) * y_star[i - 1] + phi * y_star[i - 2] + random.choice(Residuals) * vType
-            y_star.append(y_star_i)
-        elif type_btstrp == "wild":
-            vType = random.normalvariate(0, 1)
-            y_star_i = (1 - phi) * y_star[i - 1] + phi * y_star[i - 2] + random.choice(Residuals) * vType
-            y_star.append(y_star_i)
-    return np.array(y_star), DF_manual(y_star)
+        vType = random.normalvariate(0, 1)
+        y_star_i = ((1 - phi) * y_star[i - 1]) + (phi * y_star[i - 2]) + (random.choice(eta) * vType)
+        y_star.append(y_star_i)
+
+    y_star = np.array(y_star)
+    return y_star
 
 
-def Regress_AR(Dependent):
-    Model = AutoReg(Dependent, lags=[1])
+def block_simulation():
+    return 0
+
+
+def wild_simulation(df_y, Residuals, phi):
+    y_star = list()
+    y_star.append((random.choice(Residuals) * random.normalvariate(0, 1)))
+    y_star_i = ((1 - phi) * y_star[0]) + (random.choice(Residuals) * random.normalvariate(0, 1))
+    y_star.append(y_star_i)
+    for i in range(2, df_y.shape[0]):
+        vType = random.normalvariate(0, 1)
+        y_star_i = ((1 - phi) * y_star[i - 1]) + (phi * y_star[i - 2]) + (random.choice(Residuals) * vType)
+        y_star.append(y_star_i)
+    y_star = np.array(y_star)
+    return y_star
+
+
+def np_simulation(df_y, Residuals, phi):
+    y_star = list()
+    y_star.append(random.choice(Residuals))
+    y_star_i = ((1 - phi) * y_star[0]) + random.choice(Residuals)
+    y_star.append(y_star_i)
+    for i in range(2, df_y.shape[0]):
+        y_star_i = ((1 - phi) * y_star[i - 1]) + (phi * y_star[i - 2]) + random.choice(Residuals)
+        y_star.append(y_star_i)
+    y_star = np.array(y_star)
+    return y_star
+
+
+def Regress_AR(Dependent, num_lags):
+    Model = AutoReg(Dependent, lags=num_lags, trend='n')
     Results = Model.fit()
     return Results, Results.resid
 
@@ -126,7 +176,7 @@ def test_stat(deltaY, indep):
 
 
 def Regress_OLS(deltaY, indep):
-    Model = sm.OLS(deltaY, indep, hasconst=False)
+    Model = sm.OLS(deltaY, indep)
     Results = Model.fit()
     return Results, Results.resid
 
