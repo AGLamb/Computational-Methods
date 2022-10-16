@@ -70,7 +70,7 @@ def Regress_OLS(Dependent, Independent):
 
 
 def bootstrap(df_y, df_x, bootstrap_type):
-    n = 200  # df_y.shape[1]
+    n = df_y.shape[1]
     p_vector = list()
     for i in range(n):
 
