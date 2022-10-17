@@ -17,7 +17,7 @@ alpha = 0.05
 
 
 def main():
-    paths = ('Assignment 2\Timeseries_het.txt', 'Assignment 2\Timeseries_dep.txt')
+    paths = ('Timeseries_het.txt', 'Timeseries_dep.txt')
     for i in range(len(paths)):
         Y = getVariable(paths[i])
 
