@@ -3,34 +3,38 @@ from recombinator.block_bootstrap import circular_block_bootstrap
 from statsmodels.tsa.api import AutoReg, adfuller
 from scipy.stats import norm, t
 import statsmodels.api as sm
-import random as rnd
+from tqdm import tqdm
+import warnings as w
 import pandas as pd
 import numpy as np
 import random
 import math
 
 
+w.filterwarnings('ignore')
 B = 99
 alpha = 0.05
 
 
 def main():
-    Y = getVariable('Timeseries_het.txt')
+    paths = ('Assignment 2\Timeseries_het.txt', 'Assignment 2\Timeseries_dep.txt')
+    for i in range(len(paths)):
+        Y = getVariable(paths[i])
 
-    # naive_rate = naiveTtest(Y)
-    # print(f'Naive Test\nTest rejects H0 approximately: {naive_rate * 100:.2f}%')
-    #
-    # NP_rejection = bootstrap(Y, "np")
-    # print(f'Non Parametric Bootstrap\nThe rejection rate is on average: {np.average(NP_rejection) * 100:.2f}%')
-    #
-    # Wild_rejection = bootstrap(Y, "wild")
-    # print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Wild_rejection) * 100:.2f}%')
-    # #
-    # Sieve_rejection = bootstrap(Y, "sieve")
-    # print(f'Sieve Bootstrap\nThe rejection rate is on average: {np.average(Sieve_rejection) * 100:.2f}%')
+        naive_rate = naiveTtest(Y)
+        print(f'Naive Test\nTest rejects H0 approximately: {naive_rate * 100:.2f}%')
+        
+        NP_rejection = bootstrap(Y, "np")
+        print(f'Non Parametric Bootstrap\nThe rejection rate is on average: {np.average(NP_rejection) * 100:.2f}%')
+        
+        Wild_rejection = bootstrap(Y, "wild")
+        print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Wild_rejection) * 100:.2f}%')
+        
+        Sieve_rejection = bootstrap(Y, "sieve")
+        print(f'Sieve Bootstrap\nThe rejection rate is on average: {np.average(Sieve_rejection) * 100:.2f}%')
 
-    Block_rejection = bootstrap(Y, "block")
-    print(f'Block Bootstrap\nThe rejection rate is on average: {np.average(Block_rejection) * 100:.2f}%')
+        Block_rejection = bootstrap(Y, "block")
+        print(f'Block Bootstrap\nThe rejection rate is on average: {np.average(Block_rejection) * 100:.2f}%')
     return
 
 
@@ -69,9 +73,9 @@ def rejection_rate(t_star):
 
 
 def bootstrap(df_y, bootstrap_type):
-    n = 100  # df_y.shape[1]
+    n = df_y.shape[1]
     p_vector = list()
-    for i in range(n):
+    for i in tqdm(range(n)):
 
         Tn_column = list()
         Tn = DF_manual(df_y[:, i])
@@ -134,11 +138,24 @@ def sieve_simulation(df_y, Residuals, phi):
 
 
 def block_simulation(df_y, Residuals, phi):
-    b_star = optimal_block_length(Residuals)
-    b_star_sb = b_star[0].b_star_sb
-    b_star_cb = math.ceil(b_star[0].b_star_cb)
-    print(b_star_cb)
-    return
+    b_star = math.ceil(optimal_block_length(Residuals)[0].b_star_cb)
+    blocks = circular_block_bootstrap(Residuals, block_length=b_star, replications=1, replace=True)
+    Respampled_res = blocks[0].transpose().copy()
+
+    for j in range(1, len(blocks)):
+        Respampled_res = np.concatenate([Respampled_res, blocks[j].transpose()])
+
+    y_star = list()
+    y_star.append(random.choice(Respampled_res))
+    y_star_i = ((1 - phi) * y_star[0]) + random.choice(Respampled_res)
+    y_star.append(y_star_i)
+
+    for i in range(2, df_y.shape[0]):
+        y_star_i = ((1 - phi) * y_star[i - 1]) + (phi * y_star[i - 2]) + random.choice(Respampled_res)
+        y_star.append(y_star_i)
+    y_star = np.array(y_star)
+
+    return y_star
 
 
 def wild_simulation(df_y, Residuals, phi):

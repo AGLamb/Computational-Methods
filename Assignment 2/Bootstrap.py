@@ -1,12 +1,14 @@
 from statsmodels.tsa.api import AutoReg, adfuller
 from scipy.stats import norm, t
 import statsmodels.api as sm
-import random as rnd
+from tqdm import tqdm
+import warnings as w
 import pandas as pd
 import numpy as np
 import random
 
 
+w.filterwarnings('ignore')
 B = 99
 alpha = 0.05
 
@@ -68,7 +70,7 @@ def bootstrap(df_y, df_x, bootstrap_type):
     n = 200  # df_y.shape[1]
     p_vector = list()
 
-    for i in range(n):
+    for i in tqdm(range(n)):
 
         Tn_column = list()
         Tn = test_stat(df_y[:, i], df_x)
