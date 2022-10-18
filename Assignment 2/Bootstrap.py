@@ -144,7 +144,7 @@ def Simulate_type(df_y, df_x, type_btstrp):
     elif type_btstrp == "wild":
         Tn = wild_simulation(df_y, df_x)
     else:
-        Tn = np_simulation(df_y, df_y)
+        Tn = np_simulation(df_y, df_x)
 
     return Tn
 
