@@ -20,16 +20,27 @@ def main():
     naive_rate = naiveTtest(df_X, df_Y)
     print(f'Naive Test\nTest rejects H0 is approximately: {naive_rate * 100:.2f}%')
 
-    NP_rate = bootstrap(df_Y, df_X, "np")
+    NP_rate, NP_pvalue = bootstrap(df_Y, df_X, "np")
     print(f'Non Paremetric Bootstrap\nThe rejection rate is on average: {np.average(NP_rate) * 100:.2f}%')
+    print(f'The p-value is on average: {np.average(NP_pvalue):.2f}%')
 
-    Wild_rate = bootstrap(df_Y, df_X, "wild")
+    Wild_rate, Wild_pvalue = bootstrap(df_Y, df_X, "wild")
     print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Wild_rate) * 100:.2f}%')
+    print(f'The p-value is on average: {np.average(Wild_pvalue):.2f}%')
 
-    Pair_rate = bootstrap(df_Y, df_X, "wild")
+    Pair_rate, Pair_pvalue = bootstrap(df_Y, df_X, "wild")
     print(f'Pairs Bootstrap\nThe rejection rate is on average: {np.average(Pair_rate) * 100:.2f}%')
+    print(f'The p-value is on average: {np.average(Pair_pvalue):.2f}%')
     return
 
+
+def Monte_Carlo_pvalue(Tn_vector):
+    t_hat = Tn_vector[0]
+    counter = 0
+    for i in range(1, Tn_vector.shape[0]):
+        if Tn_vector[i] > t_hat:
+            counter += 1
+    return counter/B
 
 def Process_data():
     return pd.read_csv('Assignment 2\Regressors.txt', header=None), pd.read_csv('Assignment 2\Observables.txt', header=None)
@@ -68,6 +79,7 @@ def Regress_OLS(Dependent, Independent):
 
 def bootstrap(df_y, df_x, bootstrap_type):
     n = df_y.shape[1]
+    rr_vector = list()
     p_vector = list()
 
     for i in tqdm(range(n)):
@@ -81,11 +93,14 @@ def bootstrap(df_y, df_x, bootstrap_type):
             Tn_column.append(Tn)
 
         Tn_column = np.array(Tn_column).transpose()
-        p_value = rejection_rate(Tn_column, df_y[:, i])
+        rr_value = rejection_rate(Tn_column, df_y[:, i])
+        rr_vector.append(rr_value)
+        p_value = Monte_Carlo_pvalue(Tn_column)
         p_vector.append(p_value)
 
+    rr_vector = np.array(rr_vector)
     p_vector = np.array(p_vector)
-    return p_vector
+    return rr_vector, p_vector
 
 
 def pair_simulation(df_y, df_x):

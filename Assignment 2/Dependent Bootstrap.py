@@ -17,25 +17,38 @@ alpha = 0.05
 
 
 def main():
-    paths = ('Timeseries_het.txt', 'Timeseries_dep.txt')
+    paths = ('Assignment 2\Timeseries_het.txt', 'Assignment 2\Timeseries_dep.txt')
     for i in range(len(paths)):
         Y = getVariable(paths[i])
 
         naive_rate = naiveTtest(Y)
         print(f'Naive Test\nTest rejects H0 approximately: {naive_rate * 100:.2f}%')
         
-        NP_rejection = bootstrap(Y, "np")
-        print(f'Non Parametric Bootstrap\nThe rejection rate is on average: {np.average(NP_rejection) * 100:.2f}%')
+        NP_rejection, NP_pvalue = bootstrap(Y, "np")
+        print(f'\nNon Parametric Bootstrap\nThe rejection rate is on average: {np.average(NP_rejection) * 100:.2f}%')
+        print(f'The p-value is on average: {np.average(NP_pvalue):.2f}%')
         
-        Wild_rejection = bootstrap(Y, "wild")
-        print(f'Wild Bootstrap\nThe rejection rate is on average: {np.average(Wild_rejection) * 100:.2f}%')
+        Wild_rejection, Wild_pvalue = bootstrap(Y, "wild")
+        print(f'\nWild Bootstrap\nThe rejection rate is on average: {np.average(Wild_rejection) * 100:.2f}%')
+        print(f'The p-value is on average: {np.average(Wild_pvalue:.2f}%')
         
-        Sieve_rejection = bootstrap(Y, "sieve")
-        print(f'Sieve Bootstrap\nThe rejection rate is on average: {np.average(Sieve_rejection) * 100:.2f}%')
+        Sieve_rejection, Sieve_pvalue = bootstrap(Y, "sieve")
+        print(f'\nSieve Bootstrap\nThe rejection rate is on average: {np.average(Sieve_rejection) * 100:.2f}%')
+        print(f'The p-value is on average: {np.average(Sieve_pvalue):.2f}%')
 
-        Block_rejection = bootstrap(Y, "block")
-        print(f'Block Bootstrap\nThe rejection rate is on average: {np.average(Block_rejection) * 100:.2f}%')
+        Block_rejection, Block_pvalue = bootstrap(Y, "block")
+        print(f'\nBlock Bootstrap\nThe rejection rate is on average: {np.average(Block_rejection) * 100:.2f}%')
+        print(f'The p-value is on average: {np.average(Block_pvalue):.2f}%')
     return
+
+
+def Monte_Carlo_pvalue(Tn_vector):
+    t_hat = Tn_vector[0]
+    counter = 0
+    for i in range(1, Tn_vector.shape[0]):
+        if Tn_vector[i] > t_hat:
+            counter += 1
+    return counter/B
 
 
 def difference_operator(df):
@@ -74,6 +87,7 @@ def rejection_rate(t_star):
 
 def bootstrap(df_y, bootstrap_type):
     n = df_y.shape[1]
+    rr_vector = list()
     p_vector = list()
     for i in tqdm(range(n)):
 
@@ -86,11 +100,14 @@ def bootstrap(df_y, bootstrap_type):
             Tn_column.append(Tn)
 
         Tn_column = np.array(Tn_column).transpose()
-        p_value = rejection_rate(Tn_column)
+        rr_value = rejection_rate(Tn_column)
+        rr_vector.append(rr_value)
+        p_value = Monte_Carlo_pvalue(Tn_column)
         p_vector.append(p_value)
 
     p_vector = np.array(p_vector)
-    return p_vector
+    rr_vector = np.array(rr_vector)
+    return rr_vector, p_vector
 
 
 def Simulate_type(df_y, type_btstrp):
@@ -194,7 +211,7 @@ def getVariable(pathfile):
 
 
 def test_stat(deltaY, indep):
-    Model, y_res = Regress_OLS(deltaY, indep)
+    Model = Regress_OLS(deltaY, indep)
     Tn = Model.params[0] / np.sqrt(Model.cov_HC0[0][0])
     return Tn
 
@@ -202,7 +219,7 @@ def test_stat(deltaY, indep):
 def Regress_OLS(deltaY, indep):
     Model = sm.OLS(deltaY, indep)
     Results = Model.fit()
-    return Results, Results.resid
+    return Results
 
 
 def DF_manual(df_Y):
