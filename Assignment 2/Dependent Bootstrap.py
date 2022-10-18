@@ -30,7 +30,7 @@ def main():
         
         Wild_rejection, Wild_pvalue = bootstrap(Y, "wild")
         print(f'\nWild Bootstrap\nThe rejection rate is on average: {np.average(Wild_rejection) * 100:.2f}%')
-        print(f'The p-value is on average: {np.average(Wild_pvalue:.2f}%')
+        print(f'The p-value is on average: {np.average(Wild_pvalue):.2f}%')
         
         Sieve_rejection, Sieve_pvalue = bootstrap(Y, "sieve")
         print(f'\nSieve Bootstrap\nThe rejection rate is on average: {np.average(Sieve_rejection) * 100:.2f}%')
