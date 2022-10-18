@@ -32,7 +32,7 @@ def main():
 
 
 def Process_data():
-    return pd.read_csv('Regressors.txt', header=None), pd.read_csv('Observables.txt', header=None)
+    return pd.read_csv('Assignment 2\Regressors.txt', header=None), pd.read_csv('Assignment 2\Observables.txt', header=None)
 
 
 def naiveTtest(df_X, df_Y):
@@ -77,7 +77,7 @@ def bootstrap(df_y, df_x, bootstrap_type):
         Tn_column.append(Tn)
 
         for j in range(B):
-            y_star, Tn = Simulate_type(df_y[:, i], df_x, bootstrap_type)
+            Tn = Simulate_type(df_y[:, i], df_x, bootstrap_type)
             Tn_column.append(Tn)
 
         Tn_column = np.array(Tn_column).transpose()
@@ -88,44 +88,65 @@ def bootstrap(df_y, df_x, bootstrap_type):
     return p_vector
 
 
-def Simulate_type(df_y, df_x, type_btstrp):
+def pair_simulation(df_y, df_x):
     y_star = list()
+    x_star = list()
+    for k in range(df_y.shape[0]):
+        index = random.randint(0, len(df_y) - 1)
+        x_star_i = df_x.iloc[[index]].tolist()
+        y_star_i = df_y[k][index]
+        y_star.append(y_star_i)
+        x_star.append(x_star_i)
+
+    x_star = np.array(x_star)
+    y_star = np.array(y_star)
+    Tn = test_stat(y_star, x_star)
+    return  Tn 
+
+
+def wild_simulation(df_y, df_x):
+    y_star = list()
+    X_Res = df_x.copy()
+    X_Res[:, 1] = 0
+    Model, Residuals = Regress_OLS(df_y, X_Res)
+    y_hat = Model.fittedvalues
+
+    for k in range(df_y.shape[0]):
+        vType = random.normalvariate(0, 1)
+        y_star_i = y_hat[k] + random.choice(Residuals) * vType
+        y_star.append(y_star_i)
+
+    y_star = np.array(y_star)
+    Tn = test_stat(y_star, df_x)
+    return Tn 
+
+
+def np_simulation(df_y, df_x):
+    y_star = list()
+    X_Res = df_x.copy()
+    X_Res[:, 1] = 0
+    Model, Residuals = Regress_OLS(df_y, X_Res)
+    y_hat = Model.fittedvalues
+
+    for k in range(df_y.shape[0]):
+        y_star_i = y_hat[k] + random.choice(Residuals)
+        y_star.append(y_star_i)
+
+    y_star = np.array(y_star)
+    Tn = test_stat(y_star, df_x)
+    return Tn 
+
+
+def Simulate_type(df_y, df_x, type_btstrp):
 
     if type_btstrp == "pair":
-        x_star = list()
-
-        for k in range(df_y.shape[0]):
-            index = random.randint(0, len(df_y) - 1)
-            x_star_i = df_x.iloc[[index]].tolist()
-            y_star_i = df_y[i][index]
-            y_star.append(y_star_i)
-            x_star.append(x_star_i)
-
-        x_star = np.array(x_star)
-        y_star = np.array(y_star)
-        Tn = test_stat(y_star, x_star)
-
+        Tn = pair_simulation(df_y, df_x)
+    elif type_btstrp == "wild":
+        Tn = wild_simulation(df_y, df_x)
     else:
-        X_Res = df_x.copy()
-        X_Res[:, 1] = 0
-        Model, Residuals = Regress_OLS(df_y, X_Res)
-        y_hat = Model.fittedvalues
+        Tn = np_simulation(df_y, df_y)
 
-        for k in range(df_y.shape[0]):
-
-            if type_btstrp == "np":
-                vType = 1
-                y_star_i = y_hat[k] + random.choice(Residuals) * vType
-                y_star.append(y_star_i)
-            elif type_btstrp == "wild":
-                vType = random.normalvariate(0, 1)
-                y_star_i = y_hat[k] + random.choice(Residuals) * vType
-                y_star.append(y_star_i)
-
-        y_star = np.array(y_star)
-        Tn = test_stat(y_star, df_x)
-
-    return y_star, Tn
+    return Tn
 
 
 def test_stat(y_vector, x_vector):
